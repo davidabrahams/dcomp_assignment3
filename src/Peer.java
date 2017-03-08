@@ -3,24 +3,11 @@ import java.rmi.server.*;
 
 public class Peer extends UnicastRemoteObject implements PeerInterface {
 
-    public String name;
-
-    public Peer(String n)  throws RemoteException {
-        this.name=n;
+    public Peer()  throws RemoteException {
     }
 
     @Override
-    public String getName() throws RemoteException {
-        return this.name;
-    }
-
-    @Override
-    public void sendToClient(Message m) throws RemoteException{
-        System.out.println();
-        System.out.println();
-        System.out.println("Message received from " + m.sender + ":");
-        System.out.println(m.msg);
-        System.out.println();
-        System.out.print("Your command -> ");
+    public void startSendingMoney() throws RemoteException {
+        System.out.println("IM SENDING MONEY!");
     }
 }

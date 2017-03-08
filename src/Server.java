@@ -1,38 +1,32 @@
 import java.rmi.RemoteException;
+import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 public class Server extends UnicastRemoteObject implements ServerInterface{
-    private Map<String, PeerInterface> clientMap;
 
-    public Server() throws RemoteException {
-        clientMap = new HashMap<>();
+    private final int NUM_PEERS = 1;
+    private Map<String, PeerInterface> peers;
+    private Registry reg;
+
+    public Server(Registry reg) throws RemoteException {
+        this.reg = reg;
+        peers = new HashMap<>();
     }
 
     @Override
-    public boolean register(PeerInterface client) throws RemoteException {
-        System.out.println("Request to register " + client.getName() +" received.");
-        if (clientMap.keySet().contains(client.getName()))
-            return false;
-        clientMap.put(client.getName(), client);
-        return true;
-    }
+    public String register(PeerInterface client) throws RemoteException {
+        System.out.println("Request to register received.");
+        String name = "P" + Integer.toString(peers.size() + 1);
+        peers.put(name, client);
+        reg.rebind(name, client);
 
-    @Override
-    public List<String> getUsers() throws RemoteException {
-        System.out.println("Request for user received");
-        List<String> l  = new ArrayList<>();
-        l.addAll(clientMap.keySet());
-        return l;
-    }
+        if (peers.size() == NUM_PEERS) {
+            for (PeerInterface p : peers.values())
+                p.startSendingMoney();
+        }
 
-    @Override
-    public boolean sendToServer(Message m) throws RemoteException {
-        System.out.println("Server message received");
-        if(!clientMap.keySet().contains(m.receiver))
-            return false;
-        clientMap.get(m.receiver).sendToClient(m);
-        return true;
+        return name;
     }
 
 }

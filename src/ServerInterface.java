@@ -4,8 +4,6 @@ import java.util.List;
 
 public interface ServerInterface extends Remote {
 
-    boolean register (PeerInterface client)throws RemoteException;
-    List<String> getUsers ()throws RemoteException;
-    boolean sendToServer(Message m)throws RemoteException;
+    String register (PeerInterface client)throws RemoteException;
 
 }

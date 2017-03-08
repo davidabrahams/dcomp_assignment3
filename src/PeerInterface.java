@@ -1,6 +1,6 @@
-import java.rmi.*;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
 
-public interface PeerInterface extends Remote{
-    String getName() throws RemoteException;
-    void sendToClient(Message msg) throws RemoteException;
+public interface PeerInterface extends Remote {
+    void startSendingMoney() throws RemoteException;
 }
