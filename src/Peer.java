@@ -1,11 +1,11 @@
 import java.rmi.*;
 import java.rmi.server.*;
 
-public class Client extends UnicastRemoteObject implements ClientInterface {
+public class Peer extends UnicastRemoteObject implements PeerInterface {
 
     public String name;
 
-    public Client(String n)  throws RemoteException {
+    public Peer(String n)  throws RemoteException {
         this.name=n;
     }
 

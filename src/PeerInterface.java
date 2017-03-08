@@ -1,6 +1,6 @@
 import java.rmi.*;
 
-public interface ClientInterface extends Remote{
+public interface PeerInterface extends Remote{
     String getName() throws RemoteException;
     void sendToClient(Message msg) throws RemoteException;
 }

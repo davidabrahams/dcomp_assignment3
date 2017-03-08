@@ -2,11 +2,11 @@ import java.rmi.*;
 import java.util.*;
 
 public class ClientRunner {
-    private static ClientInterface registerClient(Scanner s, ServerInterface server) throws RemoteException {
+    private static PeerInterface registerClient(Scanner s, ServerInterface server) throws RemoteException {
         while (true) {
             System.out.print("Enter a username -> ");
             String name=s.nextLine().trim();
-            ClientInterface client = new Client(name);
+            PeerInterface client = new Peer(name);
             if (server.register(client)) {
                 System.out.println("Successfully registered.");
                 return client;
@@ -20,8 +20,8 @@ public class ClientRunner {
 
             Scanner s=new Scanner(System.in);
 
-            ServerInterface server = (ServerInterface)Naming.lookup("rmi://localhost/ABC");
-            ClientInterface client = registerClient(s, server);
+            ServerInterface server = (ServerInterface)Naming.lookup("rmi://10.7.92.44/ABC");
+            PeerInterface client = registerClient(s, server);
 
             boolean quit = false;
             System.out.println();
@@ -59,7 +59,7 @@ public class ClientRunner {
             }
             System.exit(0);
         } catch (Exception e) {
-            System.out.println("[System] Client failed: " + e);
+            System.out.println("[System] Peer failed: " + e);
             e.printStackTrace();
         }
     }

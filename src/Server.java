@@ -3,14 +3,14 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 public class Server extends UnicastRemoteObject implements ServerInterface{
-    private Map<String,ClientInterface> clientMap;
+    private Map<String, PeerInterface> clientMap;
 
     public Server() throws RemoteException {
         clientMap = new HashMap<>();
     }
 
     @Override
-    public boolean register(ClientInterface client) throws RemoteException {
+    public boolean register(PeerInterface client) throws RemoteException {
         System.out.println("Request to register " + client.getName() +" received.");
         if (clientMap.keySet().contains(client.getName()))
             return false;
