@@ -1,11 +1,14 @@
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Server extends UnicastRemoteObject implements ServerInterface{
 
-    private final int NUM_PEERS = 2;
+    private final int NUM_PEERS = 3;
     private Map<String, PeerInterface> peers;
     private Registry reg;
 

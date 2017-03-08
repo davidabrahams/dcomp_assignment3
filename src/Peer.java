@@ -11,30 +11,20 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     private List<String> allPeers;
     private Registry reg;
 
-    public Peer(Registry reg)  throws RemoteException {
+    public Peer(Registry reg) throws RemoteException {
         balance = 200;
+        this.reg = reg;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    private void makeTransactions() throws InterruptedException, RemoteException, NotBoundException {
-        while (true) {
-            Thread.sleep(ThreadLocalRandom.current().nextInt(100, 2000));
-            int money = ThreadLocalRandom.current().nextInt(1, balance + 1);
-            String randomPeer = allPeers.get(ThreadLocalRandom.current().nextInt(allPeers.size()));
-            PeerInterface peer = (PeerInterface) reg.lookup(randomPeer);
-            balance -= money;
-            System.out.println("Sending $" + Integer.toString(money) + " to " + randomPeer);
-            peer.receiveMoney(money);
-        }
-    }
-
     @Override
     public void startSendingMoney(List<String> peers) throws RemoteException {
-        System.out.println("IM SENDING MONEY!");
         allPeers = peers;
+        Thread t1 = new Thread(new TransactionRunner());
+        t1.start();
     }
 
     @Override
@@ -46,4 +36,35 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     public String getName() {
         return name;
     }
+
+    private class TransactionRunner implements Runnable {
+        public void run() {
+            while (true) {
+                try {
+                    Thread.sleep(ThreadLocalRandom.current().nextInt(1999, 2000));
+                } catch (InterruptedException e) {
+                    System.out.println("Error in Thread.sleep");
+                    return;
+                }
+                int money = ThreadLocalRandom.current().nextInt(0, balance + 1);
+                String randomPeer = allPeers.get(ThreadLocalRandom.current().nextInt(allPeers.size()));
+                PeerInterface peer;
+                try {
+                    peer = (PeerInterface) reg.lookup(randomPeer);
+                } catch (RemoteException | NotBoundException e) {
+                    System.out.println("Error looking up " + randomPeer + " in registry");
+                    return;
+                }
+                balance -= money;
+                System.out.println("Sending $" + Integer.toString(money) + " to " + randomPeer);
+                try {
+                    peer.receiveMoney(money);
+                } catch (RemoteException e) {
+                    System.out.println("Error sending money to " + randomPeer);
+                    return;
+                }
+            }
+        }
+    }
+
 }

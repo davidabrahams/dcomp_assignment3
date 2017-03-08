@@ -1,9 +1,7 @@
-import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.*;
 
-public class ClientRunner {
+public class PeerRunner {
 
     public static void main (String[] argv) {
         try {
@@ -12,8 +10,7 @@ public class ClientRunner {
             ServerInterface server = (ServerInterface) reg.lookup("server");
             Peer peer = new Peer(reg);
             peer.setName(server.register(peer));
-            reg.rebind(peer.getName(), peer);
-            System.exit(0);
+            System.out.println("Registered with name " + peer.getName());
         } catch (Exception e) {
             System.out.println("[System] Peer failed: " + e);
             e.printStackTrace();
