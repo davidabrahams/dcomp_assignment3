@@ -4,7 +4,7 @@ import java.rmi.registry.Registry;
 public class ServerRunner {
     public static void main (String[] argv) {
         try {
-            System.setProperty("java.rmi.server.hostname", "10.7.92.44");
+            System.setProperty("java.rmi.server.hostname", argv[0]);
             Registry reg = LocateRegistry.createRegistry(1099);
             Server server = new Server();
             reg.rebind("server", server);
