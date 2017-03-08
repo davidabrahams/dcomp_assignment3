@@ -21,6 +21,7 @@ public class ClientRunner {
         try {
 
             Scanner s=new Scanner(System.in);
+            System.setProperty("java.rmi.server.hostname", "10.7.92.44");
             Registry reg = LocateRegistry.getRegistry("10.7.92.44", 1099);
             ServerInterface server = (ServerInterface) reg.lookup("server");
             PeerInterface client = registerClient(s, server);
