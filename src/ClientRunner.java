@@ -20,7 +20,7 @@ public class ClientRunner {
 
             Scanner s=new Scanner(System.in);
 
-            ServerInterface server = (ServerInterface)Naming.lookup("rmi://10.7.92.44/ABC");
+            ServerInterface server = (ServerInterface)Naming.lookup("//10.7.92.44/ABC");
             PeerInterface client = registerClient(s, server);
 
             boolean quit = false;
