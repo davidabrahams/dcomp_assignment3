@@ -1,10 +1,13 @@
-import java.rmi.*;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 
 public class ServerRunner {
     public static void main (String[] argv) {
         try {
+            System.setProperty("java.rmi.server.hostname", "10.7.92.44");
+            Registry reg = LocateRegistry.createRegistry(1099);
             Server server = new Server();
-            Naming.rebind("//10.7.92.44/ABC", server);
+            reg.rebind("server", server);
             System.out.println("[System] Server Remote Object is ready.");
         }
 

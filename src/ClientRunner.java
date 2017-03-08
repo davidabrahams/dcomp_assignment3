@@ -1,4 +1,6 @@
 import java.rmi.*;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.*;
 
 public class ClientRunner {
@@ -19,8 +21,8 @@ public class ClientRunner {
         try {
 
             Scanner s=new Scanner(System.in);
-
-            ServerInterface server = (ServerInterface)Naming.lookup("//10.7.92.44/ABC");
+            Registry reg = LocateRegistry.getRegistry("10.7.92.44", 1099);
+            ServerInterface server = (ServerInterface) reg.lookup("server");
             PeerInterface client = registerClient(s, server);
 
             boolean quit = false;
