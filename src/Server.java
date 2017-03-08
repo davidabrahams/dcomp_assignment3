@@ -5,7 +5,7 @@ import java.util.*;
 
 public class Server extends UnicastRemoteObject implements ServerInterface{
 
-    private final int NUM_PEERS = 1;
+    private final int NUM_PEERS = 2;
     private Map<String, PeerInterface> peers;
     private Registry reg;
 
@@ -20,12 +20,13 @@ public class Server extends UnicastRemoteObject implements ServerInterface{
         String name = "P" + Integer.toString(peers.size() + 1);
         peers.put(name, client);
         reg.rebind(name, client);
-
         if (peers.size() == NUM_PEERS) {
-            for (PeerInterface p : peers.values())
-                p.startSendingMoney();
+            for (String s : peers.keySet()) {
+                List<String> peersToSend = new ArrayList<>(peers.keySet());
+                peersToSend.remove(s);
+                peers.get(s).startSendingMoney(peersToSend);
+            }
         }
-
         return name;
     }
 
