@@ -14,7 +14,7 @@ public class PeerRunner {
             Registry localReg = LocateRegistry.createRegistry(1099);
             Registry masterReg = LocateRegistry.getRegistry(masterIP, 1099);
             MasterInterface master = (MasterInterface) masterReg.lookup("master");
-            Peer peer = new Peer(processName);
+            Peer peer = new Peer(processName, localIP);
             localReg.rebind(processName, peer);
             master.register(localIP, processName);
             System.out.println("Registered with name " + peer.getName());
