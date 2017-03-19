@@ -1,19 +1,20 @@
 import java.rmi.*;
-import java.rmi.registry.Registry;
+import java.rmi.registry.LocateRegistry;
 import java.rmi.server.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Peer extends UnicastRemoteObject implements PeerInterface {
 
     private String name;
     private int balance;
-    private List<String> allPeers;
-    private Registry reg;
+    private List<NameIP> otherPeers;
 
-    public Peer(Registry reg) throws RemoteException {
+    public Peer(String name) throws RemoteException {
         balance = 200;
-        this.reg = reg;
+        this.name = name;
     }
 
     public void setName(String name) {
@@ -21,8 +22,8 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     }
 
     @Override
-    public void startSendingMoney(List<String> peers) throws RemoteException {
-        allPeers = peers;
+    public void startSendingMoney(List<NameIP> peers) throws RemoteException {
+        otherPeers = peers;
         Thread t1 = new Thread(new TransactionRunner());
         t1.start();
     }
@@ -47,20 +48,21 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
                     return;
                 }
                 int money = ThreadLocalRandom.current().nextInt(0, balance + 1);
-                String randomPeer = allPeers.get(ThreadLocalRandom.current().nextInt(allPeers.size()));
+                NameIP random = otherPeers.get(ThreadLocalRandom.current().nextInt(otherPeers.size()));
                 PeerInterface peer;
                 try {
-                    peer = (PeerInterface) reg.lookup(randomPeer);
+                    peer = (PeerInterface) LocateRegistry.getRegistry(random.ip, 1099).lookup(random.name);
                 } catch (RemoteException | NotBoundException e) {
-                    System.out.println("Error looking up " + randomPeer + " in registry");
+                    System.out.println("Process with name " + random.name +
+                            " not found on server at IP " + random.ip);
                     return;
                 }
                 balance -= money;
-                System.out.println("Sending $" + Integer.toString(money) + " to " + randomPeer);
+                System.out.println("Sending $" + Integer.toString(money) + " to " + random.name);
                 try {
                     peer.receiveMoney(money);
                 } catch (RemoteException e) {
-                    System.out.println("Error sending money to " + randomPeer);
+                    System.out.println("Error sending money to " + random.name);
                     return;
                 }
             }
