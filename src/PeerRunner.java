@@ -1,15 +1,22 @@
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.ExportException;
 
 public class PeerRunner {
 
     public static void main (String[] argv) {
         try {
-            System.setProperty("java.rmi.server.hostname", argv[0]);
-            Registry reg = LocateRegistry.getRegistry("10.7.92.44", 1099);
-            ServerInterface server = (ServerInterface) reg.lookup("server");
-            Peer peer = new Peer(reg);
-            peer.setName(server.register(peer));
+            String localIP = argv[0];
+            String masterIP = argv[1];
+            String processName = argv[2];
+            System.out.println(localIP + masterIP + processName);
+            System.setProperty("java.rmi.server.hostname", localIP);
+            Registry localReg = LocateRegistry.createRegistry(1099);
+            Registry masterReg = LocateRegistry.getRegistry(masterIP, 1099);
+            MasterInterface master = (MasterInterface) masterReg.lookup("master");
+            Peer peer = new Peer(processName);
+            localReg.rebind(processName, peer);
+            master.register(localIP, processName);
             System.out.println("Registered with name " + peer.getName());
         } catch (Exception e) {
             System.out.println("[System] Peer failed: " + e);
