@@ -16,21 +16,17 @@ public class Master extends UnicastRemoteObject implements MasterInterface {
         allProcesses = new ArrayList<>();
     }
 
-    private PeerInterface getPeer(NameIP nip) throws RemoteException, NotBoundException {
-        String IP = nip.ip;
-        Registry reg = LocateRegistry.getRegistry(IP, 1099);
-        return (PeerInterface) reg.lookup(nip.name);
-    }
-
-
     @Override
     public void register(String IP, String name) throws RemoteException, NotBoundException, InterruptedException {
         System.out.println("Request to register received for process: " + name);
         allProcesses.add(new NameIP(name, IP));
         if (allProcesses.size() == NUM_PEERS) {
-            for (NameIP nip : allProcesses) {
+            for (int i = 0; i < allProcesses.size(); i++) {
+                NameIP nip = allProcesses.get(i);
                 List<NameIP> peersToSend = allProcesses.stream().filter(temp -> temp != nip).collect(Collectors.toList());
-                PeerInterface p = getPeer(nip);
+                PeerInterface p = Util.getPeer(nip);
+                NameIP nextPeer = allProcesses.get((i + 1) % allProcesses.size());
+                p.setNextPeer(nextPeer);
                 p.startSendingMoney(peersToSend);
             }
             System.exit(0);

@@ -11,6 +11,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     private String name;
     private int balance;
     private List<NameIP> otherPeers;
+    private NameIP nextPeer;
 
     public Peer(String name) throws RemoteException {
         balance = 200;
@@ -34,12 +35,18 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         balance += m;
     }
 
+    @Override
+    public void setNextPeer(NameIP nip) throws RemoteException {
+        nextPeer = nip;
+    }
+
     public String getName() {
         return name;
     }
 
     private class TransactionRunner implements Runnable {
         public void run() {
+            
             while (true) {
                 try {
                     Thread.sleep(ThreadLocalRandom.current().nextInt(1999, 2000));
@@ -49,13 +56,11 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
                 }
                 int money = ThreadLocalRandom.current().nextInt(0, balance + 1);
                 NameIP random = otherPeers.get(ThreadLocalRandom.current().nextInt(otherPeers.size()));
-                PeerInterface peer;
+                PeerInterface peer = null;
                 try {
-                    peer = (PeerInterface) LocateRegistry.getRegistry(random.ip, 1099).lookup(random.name);
+                    peer = Util.getPeer(random);
                 } catch (RemoteException | NotBoundException e) {
-                    System.out.println("Process with name " + random.name +
-                            " not found on server at IP " + random.ip);
-                    return;
+                    System.out.println("Error looking up peer with name: " + random.name + " at IP: " + random.ip);
                 }
                 balance -= money;
                 System.out.println("Sending $" + Integer.toString(money) + " to " + random.name);
@@ -68,5 +73,4 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
             }
         }
     }
-
 }
