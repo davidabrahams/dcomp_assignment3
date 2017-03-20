@@ -26,11 +26,10 @@ public class SnapshotState implements Serializable {
     @Override
     public String toString() {
         String s = "";
-        s += nip.toString() + "\n";
-        s += "Current balance: " + state + "\n";
-        s += "Incoming channels: " + "\n";
+        s += "Current balance: " + state + ". ";
+        s += "Incoming channels: ";
         for (NameIP nip : channels.keySet())
-            s += nip.name + ": " + Arrays.toString(channels.get(nip).toArray()) + "\n";
+            s += nip.name + ": " + Arrays.toString(channels.get(nip).toArray()) + ", ";
         return s;
     }
 }
