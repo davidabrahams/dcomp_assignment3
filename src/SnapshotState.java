@@ -1,8 +1,9 @@
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class SnapshotState {
+public class SnapshotState implements Serializable {
     int state;
     NameIP nip;
     Map<NameIP, List<Integer>> channels;

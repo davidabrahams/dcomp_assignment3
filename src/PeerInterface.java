@@ -9,6 +9,6 @@ public interface PeerInterface extends Remote {
     void setNextPeer(NameIP nip) throws RemoteException;
     void receiveMessage(NameIP nip, boolean alreadyElected) throws RemoteException, NotBoundException;
     void receiveMarker(NameIP sender) throws RemoteException, NotBoundException;
-    SnapshotState endSnapShot();
-    void clearSnapShot();
+    SnapshotState endSnapShot() throws RemoteException;
+    void clearSnapShot() throws RemoteException;
 }
