@@ -18,10 +18,8 @@ public class SnapshotState {
         s += nip.toString() + "\n";
         s += "Current balance: " + state + "\n";
         s += "Incoming channels: " + "\n";
-        for (NameIP nip : channels.keySet()) {
+        for (NameIP nip : channels.keySet())
             s += nip.name + ": " + Arrays.toString(channels.get(nip).toArray()) + "\n";
-        }
-        s += "\n";
         return s;
     }
 }
