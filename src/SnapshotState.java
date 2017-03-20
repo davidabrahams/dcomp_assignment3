@@ -13,6 +13,16 @@ public class SnapshotState implements Serializable {
         this.channels = channels;
     }
 
+    public int totalValue() {
+        int s = state;
+        for (List<Integer> l : channels.values()) {
+            for (Integer i : l) {
+                s += i;
+            }
+        }
+        return s;
+    }
+
     @Override
     public String toString() {
         String s = "";
