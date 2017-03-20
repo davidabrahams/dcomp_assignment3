@@ -40,6 +40,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
 
     @Override
     public void receiveMessage(NameIP prevNip, boolean alreadyElected) throws RemoteException, NotBoundException {
+        System.out.println("Leader election message received. Already elected: " + alreadyElected + ". " + prevNip);
         NameIP myNip = new NameIP(this.name, this.ip);
         if (myNip.equals(prevNip)) {
             if (alreadyElected) {
