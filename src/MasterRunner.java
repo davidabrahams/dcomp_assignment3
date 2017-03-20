@@ -5,7 +5,7 @@ public class MasterRunner {
     public static void main(String[] argv) {
         try {
             System.out.println(argv[0]);
-            System.setProperty("java.rmi.master.hostname", argv[0]);
+            System.setProperty("java.rmi.server.hostname", argv[0]);
             Registry reg = LocateRegistry.createRegistry(1099);
             Master master = new Master();
             reg.rebind("master", master);

@@ -8,18 +8,16 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Peer extends UnicastRemoteObject implements PeerInterface {
 
-    private String name;
+    private String name, ip;
     private int balance;
     private List<NameIP> otherPeers;
     private NameIP nextPeer;
+    private boolean isLeader;
 
-    public Peer(String name) throws RemoteException {
+    public Peer(String name, String ip) throws RemoteException {
         balance = 200;
         this.name = name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+        this.ip = ip;
     }
 
     @Override
@@ -40,13 +38,33 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         nextPeer = nip;
     }
 
+    @Override
+    public void receiveMessage(NameIP prevNip, boolean alreadyElected) throws RemoteException, NotBoundException {
+        System.out.println("Leader election message received. Already elected: " + alreadyElected + ". " + prevNip);
+        NameIP myNip = new NameIP(this.name, this.ip);
+        if (myNip.equals(prevNip)) {
+            if (alreadyElected) {
+                System.out.println("Leader elected: " + myNip.name);
+                return;
+            }
+            this.isLeader = true;
+        }
+        (Util.getPeer(nextPeer)).receiveMessage(myNip.compareTo(prevNip) > 0 ? myNip : prevNip, this.isLeader || alreadyElected);
+    }
+
     public String getName() {
         return name;
     }
 
     private class TransactionRunner implements Runnable {
         public void run() {
-            
+            NameIP myNip = new NameIP(name, ip);
+            try {
+                (Util.getPeer(nextPeer)).receiveMessage(myNip, false);
+            } catch (RemoteException | NotBoundException e) {
+                System.out.println("Error in leader election");
+                e.printStackTrace();
+            }
             while (true) {
                 try {
                     Thread.sleep(ThreadLocalRandom.current().nextInt(1999, 2000));
