@@ -39,17 +39,17 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     }
 
     @Override
-    public void receiveMessage(NameIP prevNip, boolean alreadyElected) throws RemoteException, NotBoundException {
-        System.out.println("Leader election message received from " + prevNip + ". Already elected: " + alreadyElected);
+    public void receiveMessage(NameIP bestNip, boolean alreadyElected) throws RemoteException, NotBoundException {
+        System.out.println("Leader election message received. Best candidate: " + bestNip + ". Already elected: " + alreadyElected);
         NameIP myNip = new NameIP(this.name, this.ip);
-        if (myNip.equals(prevNip)) {
+        if (myNip.equals(bestNip)) {
             if (alreadyElected) {
                 System.out.println("Leader elected: " + myNip.name);
                 return;
             }
             this.isLeader = true;
         }
-        (Util.getPeer(nextPeer)).receiveMessage(myNip.compareTo(prevNip) > 0 ? myNip : prevNip, this.isLeader || alreadyElected);
+        (Util.getPeer(nextPeer)).receiveMessage(myNip.compareTo(bestNip) > 0 ? myNip : bestNip, this.isLeader || alreadyElected);
     }
 
     public String getName() {
@@ -60,7 +60,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         public void run() {
             NameIP myNip = new NameIP(name, ip);
             try {
-                (Util.getPeer(nextPeer)).receiveMessage(myNip, false);
+                if (name.equals("p1")) (Util.getPeer(nextPeer)).receiveMessage(myNip, false);
             } catch (RemoteException | NotBoundException e) {
                 System.out.println("Error in leader election");
                 e.printStackTrace();
