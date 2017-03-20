@@ -28,7 +28,7 @@ public class PeerRunner {
             localReg.rebind(processName, peer);
             System.out.println("Process bound locally.");
             master.register(localIP, processName);
-            System.out.println("Registered with name " + peer.getName());
+            System.out.println("Registered with name " + processName);
         } catch (Exception e) {
             System.out.println("[System] Peer failed: " + e);
             e.printStackTrace();
