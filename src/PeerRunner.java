@@ -14,7 +14,6 @@ public class PeerRunner {
             System.out.println("Master IP " + masterIP);
             System.out.println("Process name " + processName);
             System.setProperty("java.rmi.server.hostname", localIP);
-            System.out.println("Host name set.");
             Registry localReg;
             try {
                 localReg = LocateRegistry.createRegistry(1099);
@@ -22,12 +21,9 @@ public class PeerRunner {
                 System.out.println("Local RMI registry already is running. Using existing registry.");
                 localReg = LocateRegistry.getRegistry(localIP, 1099);
             }
-            System.out.println("Local registry recreated.");
             Registry masterReg = LocateRegistry.getRegistry(masterIP, 1099);
-            System.out.println("Master registry found.");
             System.out.println(Arrays.toString(masterReg.list()));
             MasterInterface master = (MasterInterface) masterReg.lookup("master");
-            System.out.println("Master object received.");
             Peer peer = new Peer(processName, localIP);
             localReg.rebind(processName, peer);
             System.out.println("Process bound locally.");
