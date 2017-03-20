@@ -27,9 +27,7 @@ public class Master extends UnicastRemoteObject implements MasterInterface {
                 List<NameIP> peersToSend = allProcesses.stream().filter(temp -> temp != nip).collect(Collectors.toList());
                 System.out.println("Sending processes " + Arrays.toString(peersToSend.toArray()));
                 PeerInterface p = Util.getPeer(nip);
-                System.out.println("Peer object obtained");
                 NameIP nextPeer = allProcesses.get((i + 1) % allProcesses.size());
-                System.out.println("Next Peer: " + nextPeer);
                 p.setNextPeer(nextPeer);
                 p.startSendingMoney(peersToSend);
             }
