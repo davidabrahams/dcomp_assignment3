@@ -17,4 +17,9 @@ class NameIP implements Serializable, Comparable<NameIP>{
         }
         return o.name.compareTo(this.name);
     }
+
+    @Override
+    public String toString() {
+        return "Name: " + name + ", IP: " + ip;
+    }
 }
