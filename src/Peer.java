@@ -34,7 +34,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     @Override
     public void receiveMoney(NameIP sender, int m) throws RemoteException {
         System.out.println("I received $" + Integer.toString(m));
-        if (channels.containsKey(sender))
+        if (channels != null && channels.containsKey(sender))
             channels.get(sender).add(m);
         balance += m;
     }
