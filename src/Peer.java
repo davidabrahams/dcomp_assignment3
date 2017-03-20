@@ -1,7 +1,7 @@
 import java.rmi.*;
-import java.rmi.registry.LocateRegistry;
 import java.rmi.server.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -13,6 +13,10 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     private List<NameIP> otherPeers;
     private NameIP nextPeer;
     private boolean isLeader;
+    private Map<NameIP, List<Integer>> channels;
+    private Map<NameIP, Boolean> markerReceived;
+    private int state;
+    private boolean receivedMarker;
 
     public Peer(String name, String ip) throws RemoteException {
         balance = 200;
@@ -28,8 +32,10 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     }
 
     @Override
-    public void receiveMoney(int m) throws RemoteException {
+    public void receiveMoney(NameIP sender, int m) throws RemoteException {
         System.out.println("I received $" + Integer.toString(m));
+        if (channels.containsKey(sender))
+            channels.get(sender).add(m);
         balance += m;
     }
 
@@ -38,56 +44,89 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         nextPeer = nip;
     }
 
+    private NameIP nameIP() {
+        return new NameIP(this.name, this.ip);
+    }
+
     @Override
     public void receiveMessage(NameIP bestNip, boolean alreadyElected) throws RemoteException, NotBoundException {
         System.out.println("Leader election message received. Best candidate: " + bestNip + ". Already elected: " + alreadyElected);
-        NameIP myNip = new NameIP(this.name, this.ip);
-        if (myNip.equals(bestNip)) {
+        if (nameIP().equals(bestNip)) {
             if (alreadyElected) {
-                System.out.println("I, " + myNip.name + " was elected the leader!");
+                System.out.println("I, " + nameIP().name + " was elected the leader!");
                 return;
             }
             this.isLeader = true;
         }
-        (Util.getPeer(nextPeer)).receiveMessage(myNip.compareTo(bestNip) > 0 ? myNip : bestNip, this.isLeader || alreadyElected);
+        (Util.getPeer(nextPeer)).receiveMessage(nameIP().compareTo(bestNip) > 0 ? nameIP() : bestNip, this.isLeader || alreadyElected);
     }
 
-    public String getName() {
-        return name;
+    @Override
+    public void clearSnapShot() {
+        System.out.println("Clearing snapshot data.");
+        channels = new HashMap<>();
+        markerReceived = new HashMap<>();
+        for (NameIP p : otherPeers)
+            markerReceived.put(p, false);
+    }
+
+    @Override
+    public SnapshotState endSnapShot() {
+        return new SnapshotState(state, nameIP(), channels);
+    }
+
+    @Override
+    public void receiveMarker(NameIP sender) throws RemoteException, NotBoundException {
+        if (sender != null)
+            markerReceived.put(sender, true);
+        else {
+            clearSnapShot();
+            for (NameIP channel : otherPeers)
+                (Util.getPeer(channel)).clearSnapShot();
+        }
+        if (receivedMarker) {
+            if (isLeader) {
+                if (!markerReceived.values().contains(false)) {
+                    // We've received markers from every incoming channel!
+                    System.out.println("Snapshot complete!");
+                    System.out.println(endSnapShot());
+                    for (NameIP channel : otherPeers) {
+                        System.out.println((Util.getPeer(channel)).endSnapShot());
+                    }
+                }
+            }
+            return;
+        }
+        // Received the first marker
+        receivedMarker = true;
+        // Record the process state
+        state = balance;
+        // Send markers to all other channels
+        for (NameIP channel : otherPeers) {
+            // Initialize the incoming channels
+            channels.put(channel, new ArrayList<>());
+            (Util.getPeer(channel)).receiveMarker(nameIP());
+        }
     }
 
     private class TransactionRunner implements Runnable {
         public void run() {
-            NameIP myNip = new NameIP(name, ip);
             try {
-                (Util.getPeer(nextPeer)).receiveMessage(myNip, false);
-            } catch (RemoteException | NotBoundException e) {
-                System.out.println("Error in leader election");
+                (Util.getPeer(nextPeer)).receiveMessage(nameIP(), false);
+                while (true) {
+                    Thread.sleep(ThreadLocalRandom.current().nextInt(10, 50));
+                    int money = ThreadLocalRandom.current().nextInt(0, balance + 1);
+                    NameIP random = otherPeers.get(ThreadLocalRandom.current().nextInt(otherPeers.size()));
+                    PeerInterface peer = Util.getPeer(random);
+                    balance -= money;
+                    System.out.println("Sending $" + Integer.toString(money) + " to " + random.name);
+                    peer.receiveMoney(nameIP(), money);
+                    if (isLeader && ThreadLocalRandom.current().nextInt(0, 10) == 0) {
+                        receiveMarker(null);
+                    }
+                }
+            } catch (RemoteException | NotBoundException | InterruptedException e) {
                 e.printStackTrace();
-            }
-            while (true) {
-                try {
-                    Thread.sleep(ThreadLocalRandom.current().nextInt(1999, 2000));
-                } catch (InterruptedException e) {
-                    System.out.println("Error in Thread.sleep");
-                    return;
-                }
-                int money = ThreadLocalRandom.current().nextInt(0, balance + 1);
-                NameIP random = otherPeers.get(ThreadLocalRandom.current().nextInt(otherPeers.size()));
-                PeerInterface peer = null;
-                try {
-                    peer = Util.getPeer(random);
-                } catch (RemoteException | NotBoundException e) {
-                    System.out.println("Error looking up peer with name: " + random.name + " at IP: " + random.ip);
-                }
-                balance -= money;
-                System.out.println("Sending $" + Integer.toString(money) + " to " + random.name);
-                try {
-                    peer.receiveMoney(money);
-                } catch (RemoteException e) {
-                    System.out.println("Error sending money to " + random.name);
-                    return;
-                }
             }
         }
     }

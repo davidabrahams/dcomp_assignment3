@@ -22,4 +22,9 @@ class NameIP implements Serializable, Comparable<NameIP>{
     public String toString() {
         return "Name: " + name + ", IP: " + ip;
     }
+
+    @Override
+    public int hashCode () {
+        return name.hashCode() + ip.hashCode();
+    }
 }
