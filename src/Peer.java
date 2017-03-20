@@ -44,7 +44,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         NameIP myNip = new NameIP(this.name, this.ip);
         if (myNip.equals(bestNip)) {
             if (alreadyElected) {
-                System.out.println("Leader elected: " + myNip.name);
+                System.out.println("I, " + myNip.name + " was elected the leader!");
                 return;
             }
             this.isLeader = true;
@@ -60,7 +60,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         public void run() {
             NameIP myNip = new NameIP(name, ip);
             try {
-                if (name.equals("p1")) (Util.getPeer(nextPeer)).receiveMessage(myNip, false);
+                (Util.getPeer(nextPeer)).receiveMessage(myNip, false);
             } catch (RemoteException | NotBoundException e) {
                 System.out.println("Error in leader election");
                 e.printStackTrace();
