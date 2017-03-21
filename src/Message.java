@@ -8,7 +8,6 @@ public class Message implements Serializable {
     int dollars;
     NameIP sender;
     NameIP bestCandidate;
-    boolean alreadyElected;
 
     public Message(int type) {
         messageType = type;

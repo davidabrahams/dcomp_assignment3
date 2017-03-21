@@ -54,20 +54,17 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         return new NameIP(this.name, this.ip);
     }
 
-    public void electionMessage(NameIP bestNip, boolean alreadyElected) throws RemoteException, NotBoundException {
-        System.out.println("Leader election message received. Best candidate: " + bestNip + ". Already elected: " + alreadyElected);
+    public void electionMessage(NameIP bestNip) throws RemoteException, NotBoundException {
+        System.out.println("Leader election message received. Best candidate: " + bestNip + ".");
         this.isLeader = false;
         if (nameIP().equals(bestNip)) {
             this.isLeader = true;
-            if (alreadyElected) {
-                System.out.println("I, " + nameIP().name + " was elected the leader!");
-                return;
-            }
+            System.out.println("I, " + nameIP().name + " was elected the leader!");
+            return;
         }
         NameIP higher = (bestNip == null || nameIP().compareTo(bestNip) > 0) ? nameIP() : bestNip;
         Message newMessage = new Message(Message.ELECTION);
         newMessage.bestCandidate = higher;
-        newMessage.alreadyElected = this.isLeader || alreadyElected;
         (Util.getPeer(nextPeer)).sendMessage(newMessage);
     }
 
@@ -149,7 +146,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         while (!messages.isEmpty()) {
             Message m = messages.poll();
             if (m.messageType == Message.ELECTION) {
-                electionMessage(m.bestCandidate, m.alreadyElected);
+                electionMessage(m.bestCandidate);
             } else if (m.messageType == Message.MONEY) {
                 incrementMoney(m.dollars, m.sender);
             } else if (m.messageType == Message.MARKER) {
