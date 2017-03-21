@@ -11,5 +11,6 @@ public interface PeerInterface extends Remote {
     SnapshotState endSnapShot() throws RemoteException;
     void startSnapShot() throws RemoteException;
     void addPeer(NameIP peer) throws RemoteException;
-    void start() throws InterruptedException, RemoteException, NotBoundException;
+    void sendMoneyToPeer() throws RemoteException, NotBoundException;
+    boolean isLeader() throws RemoteException;
 }

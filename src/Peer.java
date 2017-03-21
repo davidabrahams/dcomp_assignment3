@@ -15,6 +15,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     private Map<NameIP, Boolean> markerReceived;
     private int state;
     private boolean receivedMarker;
+    private boolean shouldSendMarkers;
 
     public Peer(String name, String ip) throws RemoteException {
         balance = 200;
@@ -43,27 +44,30 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         nextPeer = nip;
     }
 
-    private NameIP nameIP() {
+    NameIP nameIP() {
         return new NameIP(this.name, this.ip);
     }
 
     @Override
     public void electionMessage(NameIP bestNip, boolean alreadyElected) throws RemoteException, NotBoundException {
         System.out.println("Leader election message received. Best candidate: " + bestNip + ". Already elected: " + alreadyElected);
+        this.isLeader = false;
         if (nameIP().equals(bestNip)) {
+            this.isLeader = true;
             if (alreadyElected) {
                 System.out.println("I, " + nameIP().name + " was elected the leader!");
                 return;
             }
-            this.isLeader = true;
         }
-        (Util.getPeer(nextPeer)).electionMessage(nameIP().compareTo(bestNip) > 0 ? nameIP() : bestNip, this.isLeader || alreadyElected);
+        NameIP higher = (bestNip == null || nameIP().compareTo(bestNip) > 0) ? nameIP() : bestNip;
+        (Util.getPeer(nextPeer)).electionMessage(higher, this.isLeader || alreadyElected);
     }
 
     @Override
     public void startSnapShot() {
         System.out.println("Starting snapshot process.");
         receivedMarker = false;
+        shouldSendMarkers = false;
         channels = new HashMap<>();
         markerReceived = new HashMap<>();
         markedChannels = new HashMap<>();
@@ -76,7 +80,7 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         return new SnapshotState(state, nameIP(), markedChannels);
     }
 
-    private void sendMarkerToOtherChannels() throws RemoteException, NotBoundException {
+    private void recordAndSendMarkers() throws RemoteException, NotBoundException {
         for (NameIP channel : otherPeers) {
             System.out.println("Sending marker to " + channel.name);
             (Util.getPeer(channel)).receiveMarker(nameIP());
@@ -96,8 +100,6 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         }
 
         if (!receivedMarker) {
-            // Received the first marker
-            receivedMarker = true;
             // Record the process state
             state = balance;
             System.out.println("Recording state as " + state);
@@ -105,14 +107,15 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
             // Start listening on all channels
             for (NameIP channel : otherPeers)
                 channels.put(channel, new ArrayList<>());
-            if (sender != null) {
-                markedChannels.put(sender, new ArrayList<>(channels.get(sender)));
-                System.out.println("Recording channel state as " + markedChannels.get(sender));
-            }
-            sendMarkerToOtherChannels();
+            // Received the first marker
+            receivedMarker = true;
+            shouldSendMarkers = true;
+            if (sender != null)
+                markedChannels.put(sender, new ArrayList<>());
         } else {
             markedChannels.put(sender, new ArrayList<>(channels.get(sender)));
             System.out.println("Recording channel state as " + markedChannels.get(sender));
+            System.out.println("Am I the leader? " + isLeader);
             if (isLeader && !markerReceived.values().contains(false)) {
                 printSnapshotState();
             }
@@ -135,32 +138,25 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         System.out.println();
     }
 
-    public void start() throws InterruptedException, RemoteException, NotBoundException {
-        System.out.println("Process started. Waiting for peers to join network.");
-        while (otherPeers.size() < 1) {
-            Thread.sleep(1000);
+    public void sendMoneyToPeer() throws RemoteException, NotBoundException {
+        if (shouldSendMarkers) {
+            recordAndSendMarkers();
+            shouldSendMarkers = false;
         }
-        System.out.println("Peers joined! Commence sending money.");
-        (Util.getPeer(nextPeer)).electionMessage(nameIP(), false);
-        int count = 0;
-        while (true) {
-            Thread.sleep(ThreadLocalRandom.current().nextInt(5, 10));
-//            sendMarkerToOtherChannels();
-            int money = ThreadLocalRandom.current().nextInt(0, balance + 1);
-            NameIP random = otherPeers.get(ThreadLocalRandom.current().nextInt(otherPeers.size()));
-            PeerInterface peer = Util.getPeer(random);
-            System.out.println("Sending $" + Integer.toString(money) + " to " + random.name + ". Current balance: " + balance);
-            peer.receiveMoney(nameIP(), money);
-            balance -= money;
-            System.out.println("Sent $" + Integer.toString(money) + " to " + random.name + ". Current balance: " + balance);
-            // Every 20 iterations, take a snapshot
-            if (isLeader) {
-                if (count==10) {
-                    receiveMarker(null);
-                    count = 0;
-                } else
-                    count++;
-            }
-        }
+        int money = ThreadLocalRandom.current().nextInt(0, balance + 1);
+        NameIP random = otherPeers.get(ThreadLocalRandom.current().nextInt(otherPeers.size()));
+        PeerInterface recipient = Util.getPeer(random);// Every 20 iterations, take a snapshot
+        System.out.println("Sending $" + Integer.toString(money) + " to " + random.name + ". Current balance: " + balance);
+        recipient.receiveMoney(nameIP(), money);
+        balance -= money;
+        System.out.println("Sent $" + Integer.toString(money) + " to " + random.name + ". Current balance: " + balance);
+
     }
+
+    @Override
+    public boolean isLeader() throws RemoteException {
+        return isLeader;
+    }
+
+
 }
