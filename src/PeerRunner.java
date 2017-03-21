@@ -13,13 +13,13 @@ public class PeerRunner {
 
     public static void start() throws InterruptedException, RemoteException, NotBoundException {
         int count = 0;
-        peer.electionMessage(null, false);
+        peer.sendMessage(new Message(Message.ELECTION));
         while (true) {
             Thread.sleep(ThreadLocalRandom.current().nextInt(5, 10));
-            peer.sendMoneyToPeer();
+            peer.clearMessagesAndMakeTransaction();
             if (peer.isLeader()) {
                 if (count==10) {
-                    peer.receiveMarker(null);
+                    peer.sendMessage(new Message(Message.MARKER));
                     count = 0;
                 } else
                     count++;

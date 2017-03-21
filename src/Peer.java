@@ -15,13 +15,14 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
     private Map<NameIP, Boolean> markerReceived;
     private int state;
     private boolean receivedMarker;
-    private boolean shouldSendMarkers;
+    private Queue<Message> messages;
 
     public Peer(String name, String ip) throws RemoteException {
         balance = 200;
         this.name = name;
         this.ip = ip;
         otherPeers = new ArrayList<>();
+        messages = new LinkedList<>();
     }
 
     @Override
@@ -29,14 +30,14 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         otherPeers.add(peer);
     }
 
-    @Override
-    public void receiveMoney(NameIP sender, int m) throws RemoteException {
+    private void incrementMoney(int m, NameIP sender) {
         balance += m;
         if (channels != null && channels.containsKey(sender)) {
-//            System.out.println("$" + m + " added to channel");
             channels.get(sender).add(m);
+            System.out.println("Processing $" + m + ". New balance: " + balance + ". Also adding to incoming channel: " + sender.name);
+        } else {
+            System.out.println("Processing $" + m + ". New balance: " + balance);
         }
-        System.out.println("I received $" + m + ". Current balance: " + balance);
     }
 
     @Override
@@ -44,11 +45,15 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         nextPeer = nip;
     }
 
-    NameIP nameIP() {
+    @Override
+    public void sendMessage(Message m) throws RemoteException {
+        messages.offer(m);
+    }
+
+    private NameIP nameIP() {
         return new NameIP(this.name, this.ip);
     }
 
-    @Override
     public void electionMessage(NameIP bestNip, boolean alreadyElected) throws RemoteException, NotBoundException {
         System.out.println("Leader election message received. Best candidate: " + bestNip + ". Already elected: " + alreadyElected);
         this.isLeader = false;
@@ -60,14 +65,16 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
             }
         }
         NameIP higher = (bestNip == null || nameIP().compareTo(bestNip) > 0) ? nameIP() : bestNip;
-        (Util.getPeer(nextPeer)).electionMessage(higher, this.isLeader || alreadyElected);
+        Message newMessage = new Message(Message.ELECTION);
+        newMessage.bestCandidate = higher;
+        newMessage.alreadyElected = this.isLeader || alreadyElected;
+        (Util.getPeer(nextPeer)).sendMessage(newMessage);
     }
 
     @Override
     public void startSnapShot() {
         System.out.println("Starting snapshot process.");
         receivedMarker = false;
-        shouldSendMarkers = false;
         channels = new HashMap<>();
         markerReceived = new HashMap<>();
         markedChannels = new HashMap<>();
@@ -80,15 +87,16 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         return new SnapshotState(state, nameIP(), markedChannels);
     }
 
-    private void recordAndSendMarkers() throws RemoteException, NotBoundException {
+    private void sendMarkers() throws RemoteException, NotBoundException {
         for (NameIP channel : otherPeers) {
             System.out.println("Sending marker to " + channel.name);
-            (Util.getPeer(channel)).receiveMarker(nameIP());
+            Message m = new Message(Message.MARKER);
+            m.sender = nameIP();
+            (Util.getPeer(channel)).sendMessage(m);
             System.out.println("Marker sent to " + channel.name);
         }
     }
 
-    @Override
     public void receiveMarker(NameIP sender) throws RemoteException, NotBoundException {
         if (sender == null) {
             startSnapShot();
@@ -98,7 +106,6 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
             System.out.println("Marker received from " + sender.name);
             markerReceived.put(sender, true);
         }
-
         if (!receivedMarker) {
             // Record the process state
             state = balance;
@@ -109,9 +116,9 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
                 channels.put(channel, new ArrayList<>());
             // Received the first marker
             receivedMarker = true;
-            shouldSendMarkers = true;
             if (sender != null)
                 markedChannels.put(sender, new ArrayList<>());
+            sendMarkers();
         } else {
             markedChannels.put(sender, new ArrayList<>(channels.get(sender)));
             System.out.println("Recording channel state as " + markedChannels.get(sender));
@@ -138,16 +145,29 @@ public class Peer extends UnicastRemoteObject implements PeerInterface {
         System.out.println();
     }
 
-    public void sendMoneyToPeer() throws RemoteException, NotBoundException {
-        if (shouldSendMarkers) {
-            recordAndSendMarkers();
-            shouldSendMarkers = false;
+    public void handleMessages() throws RemoteException, NotBoundException {
+        while (!messages.isEmpty()) {
+            Message m = messages.poll();
+            if (m.messageType == Message.ELECTION) {
+                electionMessage(m.bestCandidate, m.alreadyElected);
+            } else if (m.messageType == Message.MONEY) {
+                incrementMoney(m.dollars, m.sender);
+            } else if (m.messageType == Message.MARKER) {
+                receiveMarker(m.sender);
+            }
         }
+
+    }
+
+    public void clearMessagesAndMakeTransaction() throws RemoteException, NotBoundException {
+        handleMessages();
         int money = ThreadLocalRandom.current().nextInt(0, balance + 1);
         NameIP random = otherPeers.get(ThreadLocalRandom.current().nextInt(otherPeers.size()));
-        PeerInterface recipient = Util.getPeer(random);// Every 20 iterations, take a snapshot
-        System.out.println("Sending $" + Integer.toString(money) + " to " + random.name + ". Current balance: " + balance);
-        recipient.receiveMoney(nameIP(), money);
+        PeerInterface recipient = Util.getPeer(random);
+        Message m = new Message(Message.MONEY);
+        m.sender = nameIP();
+        m.dollars = money;
+        recipient.sendMessage(m);
         balance -= money;
         System.out.println("Sent $" + Integer.toString(money) + " to " + random.name + ". Current balance: " + balance);
 
